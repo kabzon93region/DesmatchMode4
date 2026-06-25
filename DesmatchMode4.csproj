@@ -1,0 +1,108 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>DesmatchMode4</AssemblyName>
+    <RootNamespace>DesmatchMode4</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+
+    <Version>3.0.0</Version>
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <FileVersion>3.0.0.0</FileVersion>
+    <Product>Desmatch Mode 4 Client Mod</Product>
+    <Company>DesmatchMode Team</Company>
+    <Copyright>Copyright © 2026 DesmatchMode Team</Copyright>
+    <Description>Desmatch Mode for EFT 16.9 + SPT 4 + Fika 2.3 (fork of DesmatchMode v2.5.0)</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TarkovDir Condition="'$(TarkovDir)' == ''">U:\Games\EscapeFromTarkov4\</TarkovDir>
+    <CursorModdingDir>$(TarkovDir)CURSORAIMODING\</CursorModdingDir>
+    <TarkovPluginsSPTDir>$(TarkovDir)BepInEx\plugins\spt\</TarkovPluginsSPTDir>
+    <TarkovManagedDir>$(TarkovDir)EscapeFromTarkov_Data\Managed\</TarkovManagedDir>
+    <TarkovBepInExCoreDir>$(TarkovDir)BepInEx\core\</TarkovBepInExCoreDir>
+    <GameRefsDir>$(CursorModdingDir)game-assembly-base\05-reference-dlls\</GameRefsDir>
+    <FikaCoreDir>$(CursorModdingDir)gitarchive\new4\Fika\Fika-Plugin-2.3.1\</FikaCoreDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(TarkovBepInExCoreDir)0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>$(TarkovBepInExCoreDir)BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameRefsDir)Assembly-CSharp-remapped.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Comfort">
+      <HintPath>$(TarkovManagedDir)Comfort.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Comfort.Unity">
+      <HintPath>$(TarkovManagedDir)Comfort.Unity.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(TarkovManagedDir)Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="spt-common">
+      <HintPath>$(TarkovPluginsSPTDir)spt-common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Fika.Core">
+      <HintPath>$(FikaCoreDir)Fika.Core\bin\Release\netstandard2.1\Fika.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(TarkovManagedDir)UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(TarkovManagedDir)UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(TarkovManagedDir)UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(TarkovManagedDir)UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(TarkovManagedDir)UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(TarkovManagedDir)UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src\DesmatchMode4Plugin.cs" />
+    <Compile Include="src\GamePatches.cs" />
+    <Compile Include="src\FikaPackets.cs" />
+    <Compile Include="src\FikaCommunicationManager.cs" />
+    <Compile Include="src\DesmatchHealthUtils.cs" />
+    <Compile Include="src\DesmatchHealthReflection.cs" />
+    <Compile Include="src\DesmatchConstants.cs" />
+    <Compile Include="src\DesmatchSettings.cs" />
+    <Compile Include="src\DesmatchPlayerState.cs" />
+    <Compile Include="src\DesmatchDefibrillator.cs" />
+    <Compile Include="src\DesmatchHttpHelper.cs" />
+    <Compile Include="src\DesmatchNetSerialization.cs" />
+  </ItemGroup>
+
+</Project>

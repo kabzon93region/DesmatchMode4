@@ -1,0 +1,21 @@
+# Build
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Logs / local deploy
+logs/
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+
+# Release artifacts
+releases/
