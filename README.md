@@ -1,65 +1,70 @@
-# DesmatchMode4
-
-**Версия:** 3.0.0  
-**Платформа:** EFT 16.9 + SPT 4.0 + Fika 2.3  
-**Fork от:** `DesmatchMode` v2.5.0 (SPT 3.11) — **оригинал не трогаем**
-
-## Структура
-
-| Папка | Назначение |
-|-------|------------|
-| `client-mods/DesmatchMode4/` | BepInEx клиент → `DesmatchMode4.dll` |
-| `server-mods/DesmatchMode4/` | SPT 4 C# сервер → `DesmatchMode4.dll` |
-| `client-mods/DesmatchMode/` | **Старая версия** — для SPT 3.x |
-| `server-mods/DesmatchMode/` | **Старая версия** — TypeScript |
-
-## Идентификаторы (не конфликтуют со старым модом)
-
-| | Старый DesmatchMode | DesmatchMode4 |
-|---|---------------------|---------------|
-| BepInPlugin ID | `DesmatchMode` | `DesmatchMode4` |
-| DLL | `DesmatchMode.dll` | `DesmatchMode4.dll` |
-| Server ModGuid | (package.json) | `com.desmatchmode4.server` |
-
-HTTP-маршруты `/singleplayer/desmatch/*` **общие** — на одной установке SPT работает только одна версия сервера.
-
-## Сборка
-
-### Клиент
-```powershell
-dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\client-mods\DesmatchMode4\DesmatchMode4.csproj" -c Release
-```
-Результат: `client-mods/DesmatchMode4/bin/Release/DesmatchMode4.dll`
-
-**Зависимость:** собранный `Fika.Core.dll` (Fika 2.3.1):
-```powershell
-dotnet build "CURSORAIMODING\gitarchive\new4\Fika\Fika-Plugin-2.3.1\Fika.Core\Fika.Core.csproj" -c Release
-```
-
-### Сервер (SPT 4 C#)
-```powershell
-dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode4\DesmatchMode4.csproj" -c Release
-```
-Результат: `server-mods/DesmatchMode4/bin/Release/DesmatchMode4/DesmatchMode4.dll`
-
-## Деплой (ручной, пока утилиты на V:)
-
-**Клиент:** скопировать `DesmatchMode4.dll` → `BepInEx/plugins/DesmatchMode4/`
-
-**Сервер:** скопировать `DesmatchMode4.dll` → `SPT/user/mods/DesmatchMode4/`
-
-## Статус апгрейда (Фаза 0–1)
-
-- [x] Отдельная папка + переименование
-- [x] Клиент компилируется под 16.9 / SPT 4 refs
-- [x] Fika 2.3 API (LiteNetLib namespace, SendData broadcast)
-- [x] SPT 4 async HTTP (`DesmatchHttpHelper`)
-- [x] Серверный скелет C# с `/test` и `/ping`
-- [ ] Перенос остальных 9 HTTP routes с TS mod.ts
-- [ ] CustomItemService (дефибриллятор)
-- [ ] Fika-Server-CSharp интеграция
-- [ ] In-game тест solo/coop
-
-## Документация
-
-`documentation/mods/DesmatchMode/DESMATCHMODE_UPGRADE_PLAN_16.9_SPT4_FIKA23.md`
+# DesmatchMode4
+
+**GitHub:** [kabzon93region](https://github.com/kabzon93region)
+**Версия:** 3.0.0  
+**Платформа:** EFT 16.9 + SPT 4.0 + Fika 2.3  
+**Fork от:** `DesmatchMode` v2.5.0 (SPT 3.11) — **оригинал не трогаем**
+
+## Структура
+
+| Папка | Назначение |
+|-------|------------|
+| `client-mods/DesmatchMode4/` | BepInEx клиент → `DesmatchMode4.dll` |
+| `server-mods/DesmatchMode4/` | SPT 4 C# сервер → `DesmatchMode4.dll` |
+| `client-mods/DesmatchMode/` | **Старая версия** — для SPT 3.x |
+| `server-mods/DesmatchMode/` | **Старая версия** — TypeScript |
+
+## Идентификаторы (не конфликтуют со старым модом)
+
+| | Старый DesmatchMode | DesmatchMode4 |
+|---|---------------------|---------------|
+| BepInPlugin ID | `DesmatchMode` | `DesmatchMode4` |
+| DLL | `DesmatchMode.dll` | `DesmatchMode4.dll` |
+| Server ModGuid | (package.json) | `com.desmatchmode4.server` |
+
+HTTP-маршруты `/singleplayer/desmatch/*` **общие** — на одной установке SPT работает только одна версия сервера.
+
+## Сборка
+
+### Клиент
+```powershell
+dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\client-mods\DesmatchMode4\DesmatchMode4.csproj" -c Release
+```
+Результат: `client-mods/DesmatchMode4/bin/Release/DesmatchMode4.dll`
+
+**Зависимость:** собранный `Fika.Core.dll` (Fika 2.3.1):
+```powershell
+dotnet build "CURSORAIMODING\gitarchive\new4\Fika\Fika-Plugin-2.3.1\Fika.Core\Fika.Core.csproj" -c Release
+```
+
+### Сервер (SPT 4 C#)
+```powershell
+dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode4\DesmatchMode4.csproj" -c Release
+```
+Результат: `server-mods/DesmatchMode4/bin/Release/DesmatchMode4/DesmatchMode4.dll`
+
+## Деплой (ручной, пока утилиты на V:)
+
+**Клиент:** скопировать `DesmatchMode4.dll` → `BepInEx/plugins/DesmatchMode4/`
+
+**Сервер:** скопировать `DesmatchMode4.dll` → `SPT/user/mods/DesmatchMode4/`
+
+## Статус апгрейда (Фаза 0–1)
+
+- [x] Отдельная папка + переименование
+- [x] Клиент компилируется под 16.9 / SPT 4 refs
+- [x] Fika 2.3 API (LiteNetLib namespace, SendData broadcast)
+- [x] SPT 4 async HTTP (`DesmatchHttpHelper`)
+- [x] Серверный скелет C# с `/test` и `/ping`
+- [ ] Перенос остальных 9 HTTP routes с TS mod.ts
+- [ ] CustomItemService (дефибриллятор)
+- [ ] Fika-Server-CSharp интеграция
+- [ ] In-game тест solo/coop
+
+## Документация
+
+`documentation/mods/DesmatchMode/DESMATCHMODE_UPGRADE_PLAN_16.9_SPT4_FIKA23.md`
+
+## Поддержать проект
+Разовый донат картой РФ, СБП, ЮMoney, VK Pay:  
+**[DonationAlerts → kabzon93region](https://www.donationalerts.com/r/kabzon93region)**
