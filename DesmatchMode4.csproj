@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -18,13 +18,15 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <TarkovDir Condition="'$(TarkovDir)' == '' AND '$(EFT_GAME_ROOT)' != ''">$(EFT_GAME_ROOT)\</TarkovDir>
     <TarkovDir Condition="'$(TarkovDir)' == ''">U:\Games\EscapeFromTarkov4\</TarkovDir>
     <CursorModdingDir>$(TarkovDir)CURSORAIMODING\</CursorModdingDir>
     <TarkovPluginsSPTDir>$(TarkovDir)BepInEx\plugins\spt\</TarkovPluginsSPTDir>
     <TarkovManagedDir>$(TarkovDir)EscapeFromTarkov_Data\Managed\</TarkovManagedDir>
     <TarkovBepInExCoreDir>$(TarkovDir)BepInEx\core\</TarkovBepInExCoreDir>
     <GameRefsDir>$(CursorModdingDir)game-assembly-base\05-reference-dlls\</GameRefsDir>
-    <FikaCoreDir>$(CursorModdingDir)gitarchive\new4\Fika\Fika-Plugin-2.3.1\</FikaCoreDir>
+    <FikaCoreDir>$(CursorModdingDir)gitarchive
+ew4\Fika\Fika-Plugin-2.3.1\</FikaCoreDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,7 +59,8 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="Fika.Core">
-      <HintPath>$(FikaCoreDir)Fika.Core\bin\Release\netstandard2.1\Fika.Core.dll</HintPath>
+      <HintPath>$(FikaCoreDir)Fika.Core\bin\Release
+etstandard2.1\Fika.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine">
