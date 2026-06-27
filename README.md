@@ -14,7 +14,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **GitHub:** [kabzon93region](https://github.com/kabzon93region)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -30,6 +102,30 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Платформа:** EFT 16.9 + SPT 4.0 + Fika 2.3  
 
 
@@ -38,7 +134,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Fork от:** `DesmatchMode` v2.5.0 (SPT 3.11) — **оригинал не трогаем**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -70,7 +238,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | Папка | Назначение |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -86,7 +326,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | `client-mods/DesmatchMode4/` | BepInEx клиент → `DesmatchMode4.dll` |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -102,6 +390,30 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | `client-mods/DesmatchMode/` | **Старая версия** — для SPT 3.x |
 
 
@@ -110,7 +422,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | `server-mods/DesmatchMode/` | **Старая версия** — TypeScript |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -142,7 +526,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | | Старый DesmatchMode | DesmatchMode4 |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -158,7 +614,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | BepInPlugin ID | `DesmatchMode` | `DesmatchMode4` |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -174,7 +678,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 | Server ModGuid | (package.json) | `com.desmatchmode4.server` |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -206,7 +782,103 @@ HTTP-маршруты `/singleplayer/desmatch/*` **общие** — на одн�
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Сборка
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -230,7 +902,55 @@ HTTP-маршруты `/singleplayer/desmatch/*` **общие** — на одн�
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```powershell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -246,7 +966,55 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\client-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -270,7 +1038,79 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\client-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Зависимость:** собранный `Fika.Core.dll` (Fika 2.3.1):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -286,6 +1126,30 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\client-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 dotnet build "CURSORAIMODING\gitarchive\new4\Fika\Fika-Plugin-2.3.1\Fika.Core\Fika.Core.csproj" -c Release
 
 
@@ -294,7 +1158,79 @@ dotnet build "CURSORAIMODING\gitarchive\new4\Fika\Fika-Plugin-2.3.1\Fika.Core\Fi
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -318,7 +1254,55 @@ dotnet build "CURSORAIMODING\gitarchive\new4\Fika\Fika-Plugin-2.3.1\Fika.Core\Fi
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```powershell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -334,6 +1318,30 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```
 
 
@@ -342,7 +1350,79 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Результат: `server-mods/DesmatchMode4/bin/Release/DesmatchMode4/DesmatchMode4.dll`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -374,7 +1454,103 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Клиент:** скопировать `DesmatchMode4.dll` → `BepInEx/plugins/DesmatchMode4/`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -406,7 +1582,103 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Статус апгрейда (Фаза 0–1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -430,7 +1702,55 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - [x] Клиент компилируется под 16.9 / SPT 4 refs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -446,7 +1766,55 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - [x] SPT 4 async HTTP (`DesmatchHttpHelper`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -462,7 +1830,55 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - [ ] Перенос остальных 9 HTTP routes с TS mod.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -478,6 +1894,30 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - [ ] Fika-Server-CSharp интеграция
 
 
@@ -486,7 +1926,79 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - [ ] In-game тест solo/coop
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -518,7 +2030,103 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 `documentation/mods/DesmatchMode/DESMATCHMODE_UPGRADE_PLAN_16.9_SPT4_FIKA23.md`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -542,7 +2150,55 @@ dotnet build "U:\Games\EscapeFromTarkov4\CURSORAIMODING\server-mods\DesmatchMode
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Разовый донат картой РФ, СБП, ЮMoney, VK Pay:  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
