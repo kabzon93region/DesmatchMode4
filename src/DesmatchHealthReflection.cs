@@ -316,6 +316,92 @@ namespace DesmatchMode4
         }
 
         /// <summary>
+        /// Восстанавливает флаги метаболизма после revive (IsAlive, Boolean_0, DamageCoeff, эффекты).
+        /// Kill_Prefix блокирует Kill(), поэтому IsAlive может остаться false без явного сброса.
+        /// </summary>
+        public static bool TryRestorePostReviveMetabolism(object healthController)
+        {
+            if (healthController == null) return false;
+
+            bool ok = false;
+            try
+            {
+                if (healthController is ActiveHealthController activeHealth)
+                {
+                    activeHealth.IsAlive = true;
+                    activeHealth.SetDamageCoeff(1f);
+                    activeHealth.DamageMultiplier = 1f;
+                    activeHealth.UnpauseAllEffects();
+                    ok = true;
+                }
+                else
+                {
+                    var runtimeType = healthController.GetType();
+                    var isAliveProp = FindPropertyInHierarchy(runtimeType, "IsAlive");
+                    isAliveProp?.SetValue(healthController, true);
+                    ok = isAliveProp != null;
+
+                    var unpause = AccessTools.Method(runtimeType, "UnpauseAllEffects", Type.EmptyTypes)
+                                  ?? FindMethodInHierarchy(runtimeType, "UnpauseAllEffects");
+                    unpause?.Invoke(healthController, null);
+                }
+
+                var boolean0Prop = FindPropertyInHierarchy(healthController.GetType(), "Boolean_0");
+                if (boolean0Prop != null && boolean0Prop.CanWrite)
+                {
+                    boolean0Prop.SetValue(healthController, false);
+                    ok = true;
+                }
+
+                var playerField = AccessTools.Field(healthController.GetType(), "Player")
+                                  ?? FindFieldInHierarchy(healthController.GetType(), "Player");
+                if (playerField?.GetValue(healthController) is global::EFT.Player player)
+                {
+                    player.UnpauseAllEffectsOnPlayer();
+                    ok = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HEALTH_REFLECTION] TryRestorePostReviveMetabolism: {ex.Message}");
+            }
+
+            return ok;
+        }
+
+        /// <summary>
+        /// Лёгкое лечение для revive: negative effects + full health + metabolism flags.
+        /// Без ForceRemove всех эффектов и без сброса таймеров регенерации.
+        /// </summary>
+        public static bool TryLightweightReviveHeal(object healthController)
+        {
+            if (healthController == null) return false;
+
+            bool ok = false;
+            foreach (var bodyPart in DesmatchHealthUtils.BODY_PARTS_ORDER)
+            {
+                ok |= TryRemoveNegativeEffects(healthController, bodyPart);
+            }
+
+            ok |= TryRemoveNegativeEffects(healthController, EBodyPart.Common);
+            ok |= TryRestoreFullHealth(healthController);
+            ok |= TryRestorePostReviveMetabolism(healthController);
+
+            try
+            {
+                var removeMed = AccessTools.Method(healthController.GetType(), "RemoveMedEffect", Type.EmptyTypes);
+                removeMed?.Invoke(healthController, null);
+                ok = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HEALTH_REFLECTION] RemoveMedEffect: {ex.Message}");
+            }
+
+            return ok;
+        }
+
+        /// <summary>
         /// Полное лечение с отправкой NetworkHealthSync (Fika coop).
         /// </summary>
         public static bool TryHealWithNetworkSync(object healthController)
@@ -372,6 +458,18 @@ namespace DesmatchMode4
                 Debug.LogWarning($"[HEALTH_REFLECTION] {methodName}: {ex.Message}");
                 return false;
             }
+        }
+
+        private static PropertyInfo FindPropertyInHierarchy(Type type, string propertyName)
+        {
+            while (type != null)
+            {
+                var property = type.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (property != null) return property;
+                type = type.BaseType;
+            }
+
+            return null;
         }
 
         private static FieldInfo FindFieldInHierarchy(Type type, string fieldName)

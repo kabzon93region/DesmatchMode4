@@ -40,7 +40,8 @@ public class ClientSettings
 
 namespace DesmatchMode4
 {
-    [BepInPlugin("DesmatchMode4", "Desmatch Mode 4 (headless_all)", "3.0.0")]
+    // BepInEx принимает только numeric semver (x.y.z) — без -alpha/-beta суффиксов
+    [BepInPlugin("DesmatchMode4", "Desmatch Mode 4 (headless_all)", "3.0.20")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
 public class DesmatchMode4Plugin : BaseUnityPlugin
 {
@@ -69,14 +70,17 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         {
             if (serverInvulnerable)
             {
-                // Конвертируем серверное время в локальное
-                float serverTimeSeconds = serverInvulnUntil / 1000f; // сервер в миллисекундах, клиент в секундах
-                float localInvulnUntil = Time.time + (serverTimeSeconds - (Time.time * 1000f) / 1000f);
-                
+                long serverNowMs = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                float remainingSeconds = Mathf.Max(0f, (serverInvulnUntil - serverNowMs) / 1000f);
+                if (remainingSeconds <= 0f)
+                {
+                    remainingSeconds = PlayerState.ClientInvulnSeconds;
+                }
+
                 PlayerState.IsPlayerInvulnerable = true;
-                PlayerState.InvulnUntil = localInvulnUntil;
-                
-                Logger.LogInfo($"🔄 [SYNC] Неуязвимость установлена: until={PlayerState.InvulnUntil:F1}s");
+                PlayerState.InvulnUntil = Time.time + remainingSeconds;
+
+                Logger.LogInfo($"🔄 [SYNC] Неуязвимость установлена: remaining={remainingSeconds:F1}s, until={PlayerState.InvulnUntil:F1}");
             }
             else if (!isInvulnDisableInProgress && !IsPlayerInvulnerable())
             {
@@ -99,11 +103,19 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
     {
         try
         {
+            long invulnUntilUnixMs = 0L;
+            if (PlayerState.IsPlayerInvulnerable)
+            {
+                float remainingSeconds = Mathf.Max(0f, PlayerState.InvulnUntil - Time.time);
+                invulnUntilUnixMs = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    + (long)(remainingSeconds * 1000f);
+            }
+
             var data = new
             {
                 SessionId = sessionId,
                 Invulnerable = PlayerState.IsPlayerInvulnerable,
-                InvulnUntil = PlayerState.IsPlayerInvulnerable ? (double)(PlayerState.InvulnUntil * 1000f) : 0d,
+                InvulnUntil = (double)invulnUntilUnixMs,
                 Timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             };
             
@@ -253,7 +265,7 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Settings.Settings.RespawnDelay.Value = correctedDelay;
             Logger.LogInfo($"🛡️ [VALIDATION] Settings.Settings.RespawnDelay скорректирован: {respawnDelaySeconds}s → {correctedDelay}s");
         }
-        
+
         // Валидация Settings.InvulnerabilityTime
         float invulnTime = Settings.Settings.InvulnerabilityTime.Value;
         int invulnSeconds = (int)invulnTime;
@@ -272,9 +284,11 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
     private Quaternion spawnRotation;
     private Dictionary<string, object> savedPlayerData = new Dictionary<string, object>();
     private Coroutine respawnCoroutine;
+    private Coroutine fadeRespawnCoroutine;
     private string sessionId;
     private bool isRespawnInProgress = false;
     private float lastRespawnTime = -999f;
+    private float lastManualRespawnTime = -999f;
     private bool isCriticalStateHandling = false;
     private float lastCriticalStateTime = -999f;
     private bool isInvulnDisableInProgress = false;
@@ -329,7 +343,10 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         // Настройки мода с валидацией
         Logger.LogInfo("[AWAKE] Создаем конфигурацию с валидацией");
         Settings.Settings.EnableDesmatchMode = Config.Bind("General", "Enable Desmatch Mode", true, "Включить дезмач режим");
-        Settings.Settings.RespawnDelay = Config.Bind("General", "Respawn Delay", 0.5f, "Задержка перед возрождением (секунды) - фиксированное значение");
+        Settings.Settings.EnableAutoRespawn = Config.Bind("General", "Enable Auto Respawn", true,
+            "Автовозрождение после смерти. Выключите для режима только F10. При включённом авто F10 отменяет ожидание.");
+        Settings.Settings.RespawnDelay = Config.Bind("General", "Respawn Delay", 3.0f,
+            "Задержка перед автовозрождением (сек). В это окно можно нажать F10 для ручного респавна.");
         Settings.Settings.ManualRespawnKey = Config.Bind("General", "Manual Respawn Key", KeyCode.F10, "Клавиша для ручного возрождения");
         Settings.Settings.InvulnerabilityTime = Config.Bind("General", "Invulnerability Time", 3.0f, "Время неуязвимости после возрождения (секунды)");
         
@@ -785,11 +802,22 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             {
                 ShowNotification($"{Settings.Settings.ManualRespawnKey.Value} нажата, но вы не в рейде", true);
             }
+            else if (!CanTriggerManualRespawn())
+            {
+                if (isRespawnInProgress)
+                {
+                    ShowNotification("Респавн уже выполняется", true);
+                }
+                else
+                {
+                    ShowNotification("Подождите перед повторным респавном", true);
+                }
+            }
             else
             {
+                lastManualRespawnTime = Time.time;
                 ShowMainNotification($"Ручное возрождение: {Settings.Settings.ManualRespawnKey.Value}");
-                Logger.LogInfo($"[RESPAWN] PlayerState.IsPlayerDead = {PlayerState.IsPlayerDead}");
-                Logger.LogInfo($"[RESPAWN] PlayerState.IsInRaid = {PlayerState.IsInRaid}");
+                Logger.LogInfo($"[RESPAWN] Manual respawn accepted. IsPlayerDead={PlayerState.IsPlayerDead}");
                 SendManualRespawnRequestToServer();
             }
         }
@@ -1114,25 +1142,17 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         
         try
         {
-            // Убрана проверка PlayerState.IsPlayerDead — респавн может запускаться и вручную
-            
-            // Останавливаем предыдущий корутин респавна, если он есть
-            if (respawnCoroutine != null)
-            {
-                Logger.LogInfo("🔄 [RESPAWN] Останавливаем предыдущий корутин респавна");
-                StopCoroutine(respawnCoroutine);
-                respawnCoroutine = null;
-            }
+            CancelPendingRespawn($"new {respawnType} respawn");
             
             // Для ручного респавна - без задержки
             if (respawnType == "manual")
             {
                 Logger.LogInfo("🔄 [RESPAWN] Ручной респавн - без задержки");
-                StartCoroutine(RespawnWithFadeEffects(respawnType));
+                fadeRespawnCoroutine = StartCoroutine(RespawnWithFadeEffects(respawnType));
             }
             else
             {
-                // Для автоматического респавна - с задержкой
+                // Для автоматического респавна - с задержкой (окно для F10)
                 Logger.LogInfo("🔄 [RESPAWN] Автоматический респавн - с задержкой");
                 respawnCoroutine = StartCoroutine(RespawnWithDelay(respawnType));
             }
@@ -1143,11 +1163,28 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogError($"❌ [RESPAWN] Stack trace: {ex.StackTrace}");
         }
     }
+
+    private void CancelPendingRespawn(string reason)
+    {
+        if (respawnCoroutine != null)
+        {
+            StopCoroutine(respawnCoroutine);
+            respawnCoroutine = null;
+            Logger.LogInfo($"[RESPAWN] Остановлен отложенный auto-respawn: {reason}");
+        }
+
+        if (fadeRespawnCoroutine != null)
+        {
+            StopCoroutine(fadeRespawnCoroutine);
+            fadeRespawnCoroutine = null;
+            isRespawnInProgress = false;
+            Logger.LogInfo($"[RESPAWN] Остановлен fade-respawn: {reason}");
+        }
+    }
     
     // Корутин респавна с задержкой (защищенный от сброса таймера)
     private IEnumerator RespawnWithDelay(string respawnType)
     {
-        // Минимальная задержка для стабильности
         float actualDelay = Mathf.Max(PlayerState.ClientRespawnDelay / 1000f, 0.1f);
         Logger.LogInfo($"⏱️ [RESPAWN] Начинаем респавн с задержкой {actualDelay}s (исходная: {PlayerState.ClientRespawnDelay}ms)");
         
@@ -1170,7 +1207,8 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         if (respawnCoroutine != null)
         {
             Logger.LogInfo($"🚀 [RESPAWN] Задержка завершена, выполняем респавн");
-            yield return StartCoroutine(RespawnWithFadeEffects(respawnType));
+            fadeRespawnCoroutine = StartCoroutine(RespawnWithFadeEffects(respawnType));
+            yield return fadeRespawnCoroutine;
         }
     }
     
@@ -1299,7 +1337,7 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogInfo("[RESPAWN] HealthController найден, начинаем 4-этапное восстановление здоровья");
             if (localPlayer.HealthController is ActiveHealthController activeHealth)
             {
-                RestorePlayerHealth4Stages(activeHealth);
+                PerformLightweightReviveHeal(activeHealth, "RespawnPlayer");
 
                 // Шаг 1: Сброс стамины/коэффицента и удаление стаминных эффектов
                 try
@@ -1472,9 +1510,7 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             var health = localPlayer?.ActiveHealthController;
             if (health != null)
             {
-                int removed = DesmatchHealthReflection.TryForceRemoveAllActiveEffects(health);
-                Logger.LogInfo($"[FINALIZE] ForceRemove эффектов для Fika sync: {removed}");
-                DesmatchHealthReflection.TryHealWithNetworkSync(health);
+                PerformLightweightReviveHeal(health, "Finalize");
             }
         }
         catch (System.Exception ex)
@@ -1720,6 +1756,231 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         return isRespawnInProgress;
     }
 
+    public bool CanTriggerManualRespawn()
+    {
+        if (!PlayerState.IsInRaid)
+        {
+            return false;
+        }
+
+        if (isRespawnInProgress)
+        {
+            return false;
+        }
+
+        return Time.time - lastManualRespawnTime >= 3f;
+    }
+
+    private void PerformLightweightReviveHeal(ActiveHealthController health, string context)
+    {
+        if (health == null)
+        {
+            return;
+        }
+
+        Logger.LogInfo($"[HEALTH] Lightweight revive heal ({context})");
+        DesmatchHealthReflection.TryLightweightReviveHeal(health);
+        TryRestorePlayerOperationalState(localPlayer, health, context);
+    }
+
+    private void TryRestorePlayerOperationalState(LocalPlayer player, ActiveHealthController health, string context)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        Logger.LogInfo($"[REVIVE_STATE] Restore operational state ({context})");
+
+        TrySetGlobalIgnoreInput(false);
+        TryExitFikaDownedState(player);
+
+        try
+        {
+            player.UnpauseAllEffectsOnPlayer();
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] UnpauseAllEffectsOnPlayer: {ex.Message}");
+        }
+
+        if (health != null)
+        {
+            DesmatchHealthReflection.TryRestorePostReviveMetabolism(health);
+        }
+
+        TryRestorePlayerHandsAfterRevive(player);
+        TryRestorePlayerAnimators(player);
+    }
+
+    private void TryRestorePlayerHandsAfterRevive(LocalPlayer player)
+    {
+        try
+        {
+            var cancelPacket = AccessTools.Method(player.GetType(), "WriteCancelApplyingItemPacket", System.Type.EmptyTypes);
+            cancelPacket?.Invoke(player, null);
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] WriteCancelApplyingItemPacket: {ex.Message}");
+        }
+
+        try
+        {
+            var inventory = player.InventoryController;
+            var stopExecute = inventory?.GetType().GetMethod(
+                "StopExecuting",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            stopExecute?.Invoke(inventory, null);
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] StopExecuting: {ex.Message}");
+        }
+
+        try
+        {
+            player.RevealWeapon();
+            Logger.LogInfo("[REVIVE_STATE] RevealWeapon complete");
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] RevealWeapon failed, trying SetEmptyHands: {ex.Message}");
+            TryInvokeSetEmptyHands(player);
+        }
+
+        try
+        {
+            var movementContext = player.MovementContext;
+            movementContext?.ResetPhysicalCondition();
+            player.EnableSprint(true);
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] Movement reset: {ex.Message}");
+        }
+    }
+
+    private void TryInvokeSetEmptyHands(LocalPlayer player)
+    {
+        try
+        {
+            var callbackType = AccessTools.TypeByName("Callback`1");
+            var handsInterface = AccessTools.TypeByName("GInterface198");
+            if (callbackType == null || handsInterface == null)
+            {
+                return;
+            }
+
+            var genericCallback = callbackType.MakeGenericType(handsInterface);
+            var ctor = genericCallback.GetConstructor(new[] { typeof(System.Action) });
+            if (ctor == null)
+            {
+                return;
+            }
+
+            var callback = ctor.Invoke(new object[] { new System.Action(() => { }) });
+            var setEmptyHands = AccessTools.Method(typeof(LocalPlayer), "SetEmptyHands", new[] { genericCallback });
+            setEmptyHands?.Invoke(player, new[] { callback });
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] SetEmptyHands: {ex.Message}");
+        }
+    }
+
+    private void TryRestorePlayerAnimators(LocalPlayer player)
+    {
+        try
+        {
+            var bodyAnimator = AccessTools.Field(typeof(LocalPlayer), "BodyAnimatorCommon")?.GetValue(player);
+            if (bodyAnimator != null)
+            {
+                var enabledProp = bodyAnimator.GetType().GetProperty("enabled");
+                if (enabledProp?.GetValue(bodyAnimator) is bool bodyEnabled && !bodyEnabled)
+                {
+                    enabledProp.SetValue(bodyAnimator, true);
+                }
+            }
+
+            var armsAnimator = AccessTools.Field(typeof(LocalPlayer), "ArmsAnimatorCommon")?.GetValue(player);
+            if (armsAnimator != null)
+            {
+                var enabledProp = armsAnimator.GetType().GetProperty("enabled");
+                if (enabledProp?.GetValue(armsAnimator) is bool armsEnabled && !armsEnabled)
+                {
+                    enabledProp.SetValue(armsAnimator, true);
+                }
+            }
+
+            var characterController = AccessTools.Field(typeof(LocalPlayer), "_characterController")?.GetValue(player);
+            if (characterController != null)
+            {
+                var enabledProp = characterController.GetType().GetProperty("enabled");
+                if (enabledProp?.GetValue(characterController) is bool ccEnabled && !ccEnabled)
+                {
+                    enabledProp.SetValue(characterController, true);
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[REVIVE_STATE] Animator/controller restore: {ex.Message}");
+        }
+    }
+
+    private void TryExitFikaDownedState(LocalPlayer player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var fikaPlayerType = System.Type.GetType("Fika.Core.Main.Players.FikaPlayer, Fika.Core");
+            if (fikaPlayerType == null || !fikaPlayerType.IsInstanceOfType(player))
+            {
+                return;
+            }
+
+            var healthController = player.ActiveHealthController;
+            if (healthController == null)
+            {
+                return;
+            }
+
+            bool isDowned = false;
+            var downedProp = healthController.GetType().GetProperty("Downed", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (downedProp?.GetValue(healthController) is bool downed)
+            {
+                isDowned = downed;
+            }
+
+            if (isDowned)
+            {
+                var toggleDowned = fikaPlayerType.GetMethod("ToggleDowned", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                toggleDowned?.Invoke(player, new object[] { false });
+                Logger.LogInfo("[HEALTH] Fika downed state cleared via ToggleDowned(false)");
+            }
+            else
+            {
+                try
+                {
+                    player.RevealWeapon();
+                }
+                catch (System.Exception exReveal)
+                {
+                    Logger.LogWarning($"[HEALTH] RevealWeapon fallback: {exReveal.Message}");
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning($"[HEALTH] TryExitFikaDownedState: {ex.Message}");
+        }
+    }
+
     public bool ShouldBlockDeathHandling()
     {
         return PlayerState.IsPlayerDead || isRespawnInProgress || isCriticalStateHandling;
@@ -1824,9 +2085,21 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogInfo("[CRITICAL_STATE] Отправляем уведомление о смерти на сервер");
             SendPlayerDiedNotificationToServer();
             
-            // Запускаем автоматическое возрождение
-            Logger.LogInfo("[CRITICAL_STATE] Запускаем автоматическое возрождение");
-            StartAutoRespawn();
+            // Запускаем автоматическое возрождение (или ждём F10)
+            if (Settings.Settings.EnableAutoRespawn.Value)
+            {
+                float delaySec = PlayerState.ClientRespawnDelay / 1000f;
+                Logger.LogInfo("[CRITICAL_STATE] Запускаем автоматическое возрождение");
+                ShowMainNotification(
+                    $"Автовозрождение через {delaySec:0.#} сек или {Settings.Settings.ManualRespawnKey.Value}",
+                    false);
+                StartAutoRespawn();
+            }
+            else
+            {
+                Logger.LogInfo("[CRITICAL_STATE] Автовозрождение выключено — ждём F10");
+                ShowMainNotification($"Нажмите {Settings.Settings.ManualRespawnKey.Value} для возрождения", false);
+            }
             
             Logger.LogInfo("[CRITICAL_STATE] Игрок установлен в критическое состояние, возрождение запущено");
         }
@@ -1877,37 +2150,12 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         }
     }
     
-    // Сбрасываем стрельбу
+    // Сбрасываем стрельбу — без Input.ResetInputAxes (ломает HandsController после revive)
     private void ResetShootingActions()
     {
         try
         {
-            // Сбрасываем все кнопки стрельбы через Input
-            UnityEngine.Input.ResetInputAxes();
-            
-            // Дополнительно сбрасываем состояние оружия через LocalPlayer
-            if (localPlayer?.HandsController != null)
-            {
-                var handsController = localPlayer.HandsController;
-                
-                // Пытаемся остановить стрельбу через рефлексию
-                var stopShootingMethod = handsController.GetType().GetMethod("StopShooting", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-                if (stopShootingMethod != null)
-                {
-                    stopShootingMethod.Invoke(handsController, null);
-                    Logger.LogInfo("[RESET_ACTIONS] StopShooting вызван через рефлексию");
-                }
-                
-                // Сбрасываем состояние прицеливания
-                var stopAimingMethod = handsController.GetType().GetMethod("StopAiming", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-                if (stopAimingMethod != null)
-                {
-                    stopAimingMethod.Invoke(handsController, null);
-                    Logger.LogInfo("[RESET_ACTIONS] StopAiming вызван через рефлексию");
-                }
-            }
-            
-            Logger.LogInfo("[RESET_ACTIONS] Стрельба сброшена");
+            Logger.LogInfo("[RESET_ACTIONS] Skip aggressive shooting reset (preserves hands controller)");
         }
         catch (System.Exception ex)
         {
@@ -2201,7 +2449,7 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
 
         try
         {
-            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 1: Терапевтический урон конечностей (сброс залипших переломов)");
+            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 1: therapeutic damage (ноги/живот/руки)");
             ApplyRealisticDamageToLimbs(health);
         }
         catch (System.Exception ex)
@@ -2209,22 +2457,28 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка терапевтического урона: {ex.Message}");
         }
 
-        Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 2: Ожидание 1 секунду");
+        Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 2: ожидание 1с");
         yield return new WaitForSeconds(1f);
 
         try
         {
-            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 3: Повторное лечение после терапевтического урона");
+            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 3: full 5-stage heal pipeline");
             RestorePlayerHealth4Stages(health);
+            if (localPlayer?.MovementContext != null)
+            {
+                ResetMovementRestrictions(localPlayer.MovementContext);
+            }
+            TryRestorePlayerOperationalState(localPlayer, health, "InvulnEndPenaltyFull");
+            DesmatchHealthReflection.TryHealWithNetworkSync(health);
         }
         catch (System.Exception ex)
         {
-            Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка повторного лечения: {ex.Message}");
+            Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка full penalty heal: {ex.Message}");
         }
 
         try
         {
-            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 4: Останавливаем звуковой эффект");
+            Logger.LogInfo("[INVULNERABILITY_END] Останавливаем звуковой эффект");
             StopTinnitusEffect();
 
             PlayerState.IsPlayerInvulnerable = false;
@@ -2334,7 +2588,14 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         try
         {
             Logger.LogInfo("[REALISTIC_DAMAGE] Therapeutic limb damage (bypass invuln patches)");
-            var limbsToDamage = new EBodyPart[] { EBodyPart.LeftArm, EBodyPart.RightArm, EBodyPart.LeftLeg, EBodyPart.RightLeg };
+            var limbsToDamage = new EBodyPart[]
+            {
+                EBodyPart.Stomach,
+                EBodyPart.LeftLeg,
+                EBodyPart.RightLeg,
+                EBodyPart.LeftArm,
+                EBodyPart.RightArm
+            };
             int damagedLimbs = 0;
 
             var damageInfo = new DamageInfoStruct
@@ -6909,6 +7170,8 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         }
         isRespawnInProgress = true;
         
+        try
+        {
         // ЭТАП 1: Затемнение экрана
         Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 1: Затемнение экрана");
         try
@@ -6948,65 +7211,22 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         }
         
         // ЭТАП 4: Лечение
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 4: Лечение");
+        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 4: Lightweight revive heal");
         var health = localPlayer?.ActiveHealthController;
         if (health != null)
         {
             try
             {
-                RestorePlayerHealth4Stages(health);
+                PerformLightweightReviveHeal(health, "RespawnFade");
             }
             catch (System.Exception ex)
             {
                 Logger.LogError($"❌ [RESPAWN_FADE] Ошибка лечения: {ex.Message}");
             }
         }
-        
-        // ЭТАП 4.1: Сетевая синхронизация эффектов (без повторного full heal)
-        try
-        {
-            Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 4.1: Сетевая синхронизация эффектов");
-            TryClearEffectsForRespawnNetworkSync(localPlayer);
-        }
-        catch (System.Exception ex)
-        {
-            Logger.LogWarning($"❗ [RESPAWN_FADE] Ошибка синхронизации эффектов: {ex.Message}");
-        }
-        
-        // ЭТАП 5: Урон
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 5: Урон");
-        if (health != null)
-        {
-            try
-            {
-                ApplyRealisticDamageToLimbs(health);
-            }
-            catch (System.Exception ex)
-            {
-                Logger.LogError($"❌ [RESPAWN_FADE] Ошибка нанесения урона: {ex.Message}");
-            }
-        }
-        
-        // ЭТАП 6: Ожидание
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 6: Ожидание");
-        yield return new WaitForSeconds(1f);
-        
-        // ЭТАП 7: Повторное лечение
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 7: Повторное лечение");
-        if (health != null)
-        {
-            try
-            {
-                RestorePlayerHealth4Stages(health);
-            }
-            catch (System.Exception ex)
-            {
-                Logger.LogError($"❌ [RESPAWN_FADE] Ошибка повторного лечения: {ex.Message}");
-            }
-        }
-        
-        // ЭТАП 8: Осветление экрана
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 8: Осветление экрана");
+
+        // ЭТАП 5: Осветление экрана
+        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 5: Осветление экрана");
         try
         {
             EndRespawnFade();
@@ -7030,8 +7250,14 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
 
         Logger.LogInfo("🎮 [INPUT_LOCK] Фейлсейф: Разблокируем ввод по завершении респавна");
         TrySetGlobalIgnoreInput(false);
+        TryRestorePlayerHandsAfterRevive(localPlayer);
 
         isRespawnInProgress = false;
+        }
+        finally
+        {
+            fadeRespawnCoroutine = null;
+        }
     }
 
     private System.Collections.IEnumerator ReleaseInputAfter(float delaySeconds)
@@ -7110,10 +7336,8 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
     // Запуск автоматического возрождения
     private void StartAutoRespawn()
     {
-        Logger.LogInfo($"⏰ [AUTO_RESPAWN] Запуск автоматического возрождения");
-        
-        // Используем респавн с эффектами затемнения экрана
-        StartCoroutine(RespawnWithFadeEffects("auto"));
+        Logger.LogInfo($"⏰ [AUTO_RESPAWN] Запуск через HandleRespawn (delay={PlayerState.ClientRespawnDelay}ms)");
+        HandleRespawn("auto");
     }
     
     // Полный сброс ограничений движения (улучшенная версия на основе анализа v1.1.2)

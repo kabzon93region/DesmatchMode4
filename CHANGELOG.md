@@ -1,5 +1,52 @@
 # Changelog — DesmatchMode4
 
+## [3.0.20] — 2026-06-29
+
+### Fixed
+- **Manual respawn (F10):** снова работает в любой момент в рейде (не только в состоянии смерти) и всегда запускает полный пайплайн респавна
+- **F10 gate:** убрана блокировка `IsPlayerDead` для ручного респавна; остаются только проверки `in raid`, `not in progress`, `debounce`
+- **Respawn delay:** убран принудительный минимум auto-delay, т.к. ручной респавн больше не зависит от окна после смерти
+- **Penalty после invuln:** сохранён полный 5-этапный пайплайн лечения (как в стабильных сборках), с терапевтическим уронам до лечения
+
+## [3.0.19] — 2026-06-29
+
+### Fixed
+- **Penalty после invuln:** возвращён полный 5-этапный пайплайн лечения (как в стабильных сборках), с терапевтическим уронам до лечения
+- **F10 окно:** при включённом auto-respawn теперь принудительный минимум задержки 1.5 сек (если в cfg было 0.1–0.5s), чтобы ручной респавн успевал срабатывать
+- **Respawn validation:** на старых конфигах `Respawn Delay` автоматически поднимается до минимального значения для F10
+
+## [3.0.18] — 2026-06-29
+
+### Fixed
+- **F10 / ручной респавн:** автовозрождение запускало fade сразу, без `Respawn Delay` — окна для F10 не было. Теперь auto идёт через задержку; F10 отменяет ожидание и возрождает немедленно
+- **F10 only:** опция `Enable Auto Respawn` — при `false` после смерти ждёт только F10
+- **Penalty после invuln:** восстановлен терапевтический урон (ноги/живот/руки) + лёгкое лечение + сброс движения — сбрасывает залипшую хромоту/стоны при визуально полном HP
+- **Respawn Delay по умолчанию:** 3 сек (было 0.5) — больше времени на F10
+
+## [3.0.17] — 2026-06-29
+
+### Fixed (critical — mod not loading)
+- **BepInEx:** версия в `[BepInPlugin]` была `3.0.0-alpha.16` — BepInEx считает её invalid и **полностью пропускает плагин** (`Skipping type ... because its version is invalid`). Заменено на numeric semver `3.0.17`
+
+## [3.0.16] — 2026-06-29
+
+### Fixed (metabolism + hands after revive)
+- **Metabolism:** после revive вызываются `UnpauseAllEffectsOnPlayer`, `RevealWeapon`/Fika `ToggleDowned(false)`, сброс `Boolean_0` и `IsAlive`
+- **Hands busy / invisible gun:** убран `Input.ResetInputAxes` и агрессивный StopShooting при смерти; после revive — `WriteCancelApplyingItemPacket`, `RevealWeapon`, `SetEmptyHands` fallback, разблокировка ввода
+- **Animators:** повторное включение Body/Arms animator и CharacterController если остались выключены
+
+## [3.0.0-alpha.15] — 2026-06-29
+
+### Fixed (metabolism freeze after manual revive)
+- **IsAlive / Boolean_0:** после revive явно восстанавливаются `IsAlive=true`, `Boolean_0=false`, `DamageCoeff=1`, `UnpauseAllEffects()` — метаболизм снова тикает
+- **Lightweight revive path:** один проход `TryLightweightReviveHeal` вместо 2–3 вызовов `RestorePlayerHealth4Stages` с ForceRemove и сбросом таймеров
+- **Invuln end:** убраны терапевтический урон + повторное тяжёлое лечение; только quiet heal + metabolism restore
+- **Fade-path:** убраны этапы therapeutic damage / wait / re-heal — меньше лагов на main thread
+- **F10 gate:** ручной респавн только если `IsPlayerDead`, с debounce 3 сек
+- **ChangeHealth patch:** не блокирует existence/dehydration/exhaustion/stimulator/medkit drains во время invuln
+- **Invuln sync:** Unix timestamp (ms) вместо `Time.time * 1000`; сервер → клиент через remaining duration
+- **Server manual respawn:** не планирует redundant `ScheduleRespawnAsync` — клиент уже делает revive локально
+
 ## [3.0.0-alpha.14] — 2026-06-14
 
 ### Fixed / Performance

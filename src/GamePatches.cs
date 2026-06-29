@@ -151,6 +151,11 @@ public class GamePatches
 
             if (value < 0f && plugin.IsLocalPlayerDamageBlocked())
             {
+                if (IsNonCombatHealthChange(damageInfo))
+                {
+                    return true;
+                }
+
                 UnityEngine.Debug.Log($"[HARMONY] DesmatchMode: блок урона {value} для {bodyPart} (invuln/respawn)");
                 return false;
             }
@@ -205,5 +210,15 @@ public class GamePatches
         }
 
         return true;
+    }
+
+    private static bool IsNonCombatHealthChange(DamageInfoStruct damageInfo)
+    {
+        var damageType = damageInfo.DamageType;
+        return damageType == EDamageType.Existence
+            || damageType == EDamageType.Dehydration
+            || damageType == EDamageType.Exhaustion
+            || damageType == EDamageType.Stimulator
+            || damageType == EDamageType.Medicine;
     }
 }

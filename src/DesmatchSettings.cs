@@ -9,6 +9,7 @@ namespace DesmatchMode4.Settings
     {
         // Основные настройки
         public static ConfigEntry<bool> EnableDesmatchMode;
+        public static ConfigEntry<bool> EnableAutoRespawn;
         public static ConfigEntry<float> RespawnDelay;
         public static ConfigEntry<UnityEngine.KeyCode> ManualRespawnKey;
         public static ConfigEntry<float> InvulnerabilityTime;
@@ -31,7 +32,7 @@ namespace DesmatchMode4.Settings
         public const int MAX_RESPAWN_DELAY = 30000; // Максимальная задержка респавна (мс) - 30 секунд
         public const int MIN_INVULN_SECONDS = 0; // Минимальное время неуязвимости (с)
         public const int MAX_INVULN_SECONDS = 60; // Максимальное время неуязвимости (с) - 1 минута
-        public const int DEFAULT_RESPAWN_DELAY = 500; // Безопасное значение по умолчанию (мс) - 0.5 секунды
+        public const int DEFAULT_RESPAWN_DELAY = 3000; // 3 сек — окно для F10 перед автовозрождением
         public const int DEFAULT_INVULN_SECONDS = 3; // Боевая неуязvимость после респавна (с)
         /// <summary>Доп. секунды invuln на время fade-path (не показываются игроку).</summary>
         public const float INVULN_FADE_BUFFER_SECONDS = 8f;

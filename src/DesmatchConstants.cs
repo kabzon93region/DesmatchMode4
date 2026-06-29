@@ -9,7 +9,7 @@ namespace DesmatchMode4
     public static class DesmatchConstants
     {
         // Версия мода
-        public const string MOD_VERSION = "2.5.0";
+        public const string MOD_VERSION = "3.0.20";
         public const string MOD_NAME = "DesmatchMode4";
         public const string MOD_AUTHOR = "DesmatchTeam";
         
