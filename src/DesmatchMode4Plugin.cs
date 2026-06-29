@@ -41,7 +41,7 @@ public class ClientSettings
 namespace DesmatchMode4
 {
     // BepInEx принимает только numeric semver (x.y.z) — без -alpha/-beta суффиксов
-    [BepInPlugin("DesmatchMode4", "Desmatch Mode 4 (headless_all)", "3.0.20")]
+    [BepInPlugin("DesmatchMode4", "Desmatch Mode 4 (headless_all)", "3.0.23")]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
 public class DesmatchMode4Plugin : BaseUnityPlugin
 {
@@ -371,6 +371,8 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             "Плавное затухание эффекта к концу неуязвимости");
         Settings.Settings.ShowSoundEffectNotifications = Config.Bind("Notifications", "Show Sound Effect Notifications", false, 
             "Показывать уведомления о звуковых эффектах");
+
+        BindRespawnPipelineSettings();
         
         // Валидация конфигурации при загрузке
         ValidateConfiguration();
@@ -385,7 +387,6 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         if (PlayerState.ClientInvulnSeconds < 0) PlayerState.ClientInvulnSeconds = 0;
         if (PlayerState.ClientInvulnSeconds > 60) PlayerState.ClientInvulnSeconds = 60;
         
-        // Краткое логирование настроек
         Logger.LogInfo($"[AWAKE] Настройки: DesmatchMode={Settings.Settings.EnableDesmatchMode.Value}, RespawnDelay={Settings.Settings.RespawnDelay.Value}s, InvulnTime={Settings.Settings.InvulnerabilityTime.Value}s");
         
         // SPT RequestHandler инициализируется автоматически
@@ -429,6 +430,91 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         defibrillatorManager = new DesmatchDefibrillator.DefibrillatorManager(this);
         defibrillatorManager.Initialize();
         Logger.LogInfo("[AWAKE] Менеджер дефибриллятора инициализирован");
+    }
+
+    private void BindRespawnPipelineSettings()
+    {
+        const string section = "Respawn Pipeline";
+        const string metabolismWarn =
+            "ВНИМАНИЕ: принудительный сброс метаболизма может остановить убывание еды/воды после revive. По умолчанию выключено.";
+
+        Settings.Settings.Pipeline01_FadeToBlack = Config.Bind(section, "01 Fade To Black", true,
+            "[cosmetic] Затемнение экрана перед респавном.");
+        Settings.Settings.Pipeline02_Teleport = Config.Bind(section, "02 Teleport", true,
+            "[CRITICAL] Телепорт на точку респавна.");
+        Settings.Settings.Pipeline03_ResetMovementOnRevive = Config.Bind(section, "03 Reset Movement On Revive", true,
+            "[recommended] Сброс физики и ограничений движения при телепорте.");
+        Settings.Settings.Pipeline04_ClearNegativeEffects = Config.Bind(section, "04 Clear Negative Effects", true,
+            "[recommended] Снятие переломов и кровотечений при revive.");
+        Settings.Settings.Pipeline05_RestoreFullHealth = Config.Bind(section, "05 Restore Full Health", true,
+            "[recommended] Полное HP всех частей тела.");
+        Settings.Settings.Pipeline06_MetabolismRestore = Config.Bind(section, "06 Metabolism Restore", false,
+            "[metabolism] IsAlive, Boolean_0, Existence, Unpause. " + metabolismWarn);
+        Settings.Settings.Pipeline07_OperationalState = Config.Bind(section, "07 Operational State", true,
+            "[recommended] Руки, ввод, Fika downed, animators после revive.");
+        Settings.Settings.Pipeline08_FadeWake = Config.Bind(section, "08 Fade Wake", true,
+            "[cosmetic] Осветление экрана после респавна.");
+        Settings.Settings.Pipeline09_EnableInvulnerability = Config.Bind(section, "09 Enable Invulnerability", true,
+            "[CRITICAL] Боевая неуязvимость после revive (Invulnerability Time).");
+        Settings.Settings.Pipeline10_FinalizeSecondHealPass = Config.Bind(section, "10 Finalize Second Heal Pass", true,
+            "[optional] Повторный lightweight heal в Finalize (дублирует шаги 04–07).");
+        Settings.Settings.Pipeline11_FinalizeTinnitus = Config.Bind(section, "11 Finalize Tinnitus", true,
+            "[cosmetic] Звук тиннитуса (также зависит от SoundEffects > Enable Tinnitus).");
+        Settings.Settings.Pipeline12_FinalizeNetworkSync = Config.Bind(section, "12 Finalize Network Sync", true,
+            "[recommended] Fika broadcast и уведомление SPT сервера о респавне.");
+        Settings.Settings.Pipeline13_PenaltyTherapeuticDamage = Config.Bind(section, "13 Penalty Therapeutic Damage", true,
+            "[optional] Терапевтический урон (ноги/живот/руки) в конце invuln — сброс залипшей хромоты.");
+        Settings.Settings.Pipeline14_PenaltyWaitOneSecond = Config.Bind(section, "14 Penalty Wait One Second", true,
+            "[optional] Пауза 1 с между penalty-уроном и лечением.");
+        Settings.Settings.Pipeline15_PenaltyClearNegativeEffects = Config.Bind(section, "15 Penalty Clear Negative Effects", true,
+            "[recommended] Снятие негативных эффектов после penalty-урона.");
+        Settings.Settings.Pipeline16_PenaltyRestoreDestroyedParts = Config.Bind(section, "16 Penalty Restore Destroyed Parts", true,
+            "[recommended] Восстановление выбитых частей тела после penalty.");
+        Settings.Settings.Pipeline17_PenaltyRestoreFullHealth = Config.Bind(section, "17 Penalty Restore Full Health", true,
+            "[optional] Полное HP после penalty.");
+        Settings.Settings.Pipeline18_PenaltyLightweightHeal = Config.Bind(section, "18 Penalty Lightweight Heal", true,
+            "[recommended] Lightweight heal в penalty. Метаболизм затрагивается только если включён шаг 19.");
+        Settings.Settings.Pipeline19_PenaltyMetabolismRestore = Config.Bind(section, "19 Penalty Metabolism Restore", false,
+            "[metabolism] Явный restore метаболизма после penalty. " + metabolismWarn);
+        Settings.Settings.Pipeline20_PenaltyResetMovement = Config.Bind(section, "20 Penalty Reset Movement", true,
+            "[recommended] Сброс движения после penalty.");
+        Settings.Settings.Pipeline21_PenaltyDelayedMetabolism = Config.Bind(section, "21 Penalty Delayed Metabolism", false,
+            "[metabolism] Повторный restore метаболизма через 0.5 с после invuln end. " + metabolismWarn);
+        Settings.Settings.Pipeline22_LegacyFiveStageAtInvulnEnd = Config.Bind(section, "22 Legacy Five Stage At Invuln End", false,
+            "[debug] Старый 5-stage + ForceRemove вместо safe penalty — известно ломает метаболизм.");
+    }
+
+    private bool IsPipelineEnabled(BepInEx.Configuration.ConfigEntry<bool> entry, string stepLabel)
+    {
+        if (Settings.Settings.IsPipelineStepEnabled(entry))
+        {
+            return true;
+        }
+
+        Logger.LogInfo($"[PIPELINE] SKIP: {stepLabel}");
+        return false;
+    }
+
+    private DesmatchHealthReflection.LightweightReviveHealSteps BuildReviveHealStepsFromConfig()
+    {
+        return new DesmatchHealthReflection.LightweightReviveHealSteps
+        {
+            RemoveNegativeEffects = Settings.Settings.Pipeline04_ClearNegativeEffects.Value,
+            RestoreFullHealth = Settings.Settings.Pipeline05_RestoreFullHealth.Value,
+            MetabolismRestore = Settings.Settings.Pipeline06_MetabolismRestore.Value,
+            RemoveMedEffect = true
+        };
+    }
+
+    private DesmatchHealthReflection.LightweightReviveHealSteps BuildPenaltyHealStepsFromConfig()
+    {
+        return new DesmatchHealthReflection.LightweightReviveHealSteps
+        {
+            RemoveNegativeEffects = Settings.Settings.Pipeline15_PenaltyClearNegativeEffects.Value,
+            RestoreFullHealth = Settings.Settings.Pipeline17_PenaltyRestoreFullHealth.Value,
+            MetabolismRestore = Settings.Settings.Pipeline19_PenaltyMetabolismRestore.Value,
+            RemoveMedEffect = Settings.Settings.Pipeline18_PenaltyLightweightHeal.Value
+        };
     }
 
     private void Start()
@@ -1492,71 +1578,86 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         Logger.LogInfo($"[FINALIZE] Завершение респавна (тип: {respawnType})");
         PlayerState.IsPlayerDead = false;
 
-        PlayerState.IsPlayerInvulnerable = true;
-        PlayerState.InvulnUntil = Time.time + PlayerState.ClientInvulnSeconds;
-        Logger.LogInfo($"[FINALIZE] Combat invuln: {PlayerState.ClientInvulnSeconds}s until {PlayerState.InvulnUntil:F1}");
-        ShowMainNotification($"Неуязвимость: {PlayerState.ClientInvulnSeconds} сек", false);
-        SendInvulnerabilityStatusToServer();
-        BroadcastInvulnerabilityViaFika();
+        if (IsPipelineEnabled(Settings.Settings.Pipeline09_EnableInvulnerability, "09 Enable Invulnerability"))
+        {
+            PlayerState.IsPlayerInvulnerable = true;
+            PlayerState.InvulnUntil = Time.time + PlayerState.ClientInvulnSeconds;
+            Logger.LogInfo($"[FINALIZE] Combat invuln: {PlayerState.ClientInvulnSeconds}s until {PlayerState.InvulnUntil:F1}");
+            ShowMainNotification($"Неуязвимость: {PlayerState.ClientInvulnSeconds} сек", false);
+            SendInvulnerabilityStatusToServer();
+            BroadcastInvulnerabilityViaFika();
+        }
+        else
+        {
+            PlayerState.IsPlayerInvulnerable = false;
+            PlayerState.InvulnUntil = 0f;
+            Logger.LogInfo("[FINALIZE] Invulnerability disabled via pipeline config");
+        }
 
-        // Тиннитус уже запускается при BeginRespawnFade; повторный Start создавал orphan AudioSource.
-        if (Settings.Settings.EnableTinnitusEffect.Value && !isTinnitusActive)
+        if (IsPipelineEnabled(Settings.Settings.Pipeline11_FinalizeTinnitus, "11 Finalize Tinnitus")
+            && Settings.Settings.EnableTinnitusEffect.Value && !isTinnitusActive)
         {
             StartTinnitusEffect();
         }
 
-        try
+        if (IsPipelineEnabled(Settings.Settings.Pipeline10_FinalizeSecondHealPass, "10 Finalize Second Heal Pass"))
         {
-            var health = localPlayer?.ActiveHealthController;
-            if (health != null)
+            try
             {
-                PerformLightweightReviveHeal(health, "Finalize");
+                var health = localPlayer?.ActiveHealthController;
+                if (health != null)
+                {
+                    PerformLightweightReviveHeal(health, "Finalize");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogWarning($"[FINALIZE] Ошибка second heal pass: {ex.Message}");
             }
         }
-        catch (System.Exception ex)
-        {
-            Logger.LogWarning($"[FINALIZE] Ошибка network heal sync: {ex.Message}");
-        }
 
-        BroadcastRespawnViaFika(respawnType, respawnPosition);
+        if (IsPipelineEnabled(Settings.Settings.Pipeline12_FinalizeNetworkSync, "12 Finalize Network Sync"))
+        {
+            BroadcastRespawnViaFika(respawnType, respawnPosition);
+
+            try
+            {
+                SendRespawnNotificationToServer(respawnPosition, respawnType);
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogWarning($"[FINALIZE] Ошибка уведомления сервера о респавне: {ex.Message}");
+            }
+
+            try
+            {
+                var tpData = new
+                {
+                    position = new { x = respawnPosition.x, y = respawnPosition.y, z = respawnPosition.z },
+                    rotation = new { x = spawnRotation.x, y = spawnRotation.y, z = spawnRotation.z, w = spawnRotation.w },
+                    respawnType
+                };
+                var tpJson = JsonConvert.SerializeObject(tpData);
+                var tpResp = DesmatchHttpHelper.PostJson("/singleplayer/desmatch/teleport", tpJson);
+                Logger.LogInfo($"[FINALIZE] TELEPORT server confirm: {tpResp}");
+
+                if (localPlayer != null && localPlayer.IsYourPlayer)
+                {
+                    localPlayer.Transform.position = respawnPosition;
+                    localPlayer.Transform.rotation = spawnRotation;
+                    Logger.LogInfo($"[FINALIZE] Позиция повторно применена для {localPlayer.name}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogWarning($"[FINALIZE] Ошибка запроса телепорта: {ex.Message}");
+            }
+        }
 
         if (respawnCoroutine != null)
         {
             StopCoroutine(respawnCoroutine);
             respawnCoroutine = null;
-        }
-
-        try
-        {
-            SendRespawnNotificationToServer(respawnPosition, respawnType);
-        }
-        catch (System.Exception ex)
-        {
-            Logger.LogWarning($"[FINALIZE] Ошибка уведомления сервера о респавне: {ex.Message}");
-        }
-
-        try
-        {
-            var tpData = new
-            {
-                position = new { x = respawnPosition.x, y = respawnPosition.y, z = respawnPosition.z },
-                rotation = new { x = spawnRotation.x, y = spawnRotation.y, z = spawnRotation.z, w = spawnRotation.w },
-                respawnType
-            };
-            var tpJson = JsonConvert.SerializeObject(tpData);
-            var tpResp = DesmatchHttpHelper.PostJson("/singleplayer/desmatch/teleport", tpJson);
-            Logger.LogInfo($"[FINALIZE] TELEPORT server confirm: {tpResp}");
-
-            if (localPlayer != null && localPlayer.IsYourPlayer)
-            {
-                localPlayer.Transform.position = respawnPosition;
-                localPlayer.Transform.rotation = spawnRotation;
-                Logger.LogInfo($"[FINALIZE] Позиция повторно применена для {localPlayer.name}");
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Logger.LogWarning($"[FINALIZE] Ошибка запроса телепорта: {ex.Message}");
         }
     }
     
@@ -1778,12 +1879,114 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             return;
         }
 
+        var steps = BuildReviveHealStepsFromConfig();
+        if (!steps.RemoveNegativeEffects && !steps.RestoreFullHealth && !steps.MetabolismRestore && !steps.RemoveMedEffect)
+        {
+            Logger.LogInfo($"[HEALTH] Lightweight revive heal skipped — all steps disabled ({context})");
+            return;
+        }
+
         Logger.LogInfo($"[HEALTH] Lightweight revive heal ({context})");
-        DesmatchHealthReflection.TryLightweightReviveHeal(health);
-        TryRestorePlayerOperationalState(localPlayer, health, context);
+        DesmatchHealthReflection.TryLightweightReviveHeal(health, steps);
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline07_OperationalState, "07 Operational State"))
+        {
+            TryRestorePlayerOperationalState(localPlayer, health, context, skipMetabolism: steps.MetabolismRestore);
+        }
     }
 
-    private void TryRestorePlayerOperationalState(LocalPlayer player, ActiveHealthController health, string context)
+    private void PerformInvulnEndPenaltyHeal(ActiveHealthController health)
+    {
+        if (health == null)
+        {
+            return;
+        }
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline22_LegacyFiveStageAtInvulnEnd, "22 Legacy Five Stage At Invuln End"))
+        {
+            Logger.LogWarning("[INVULNERABILITY_END] legacy 5-stage penalty (may break metabolism)");
+            RestorePlayerHealth4Stages(health);
+            if (IsPipelineEnabled(Settings.Settings.Pipeline20_PenaltyResetMovement, "20 Penalty Reset Movement")
+                && localPlayer?.MovementContext != null)
+            {
+                ResetMovementRestrictions(localPlayer.MovementContext);
+            }
+
+            if (IsPipelineEnabled(Settings.Settings.Pipeline19_PenaltyMetabolismRestore, "19 Penalty Metabolism Restore"))
+            {
+                DesmatchHealthReflection.TryRestorePostReviveMetabolism(health);
+            }
+
+            return;
+        }
+
+        var steps = BuildPenaltyHealStepsFromConfig();
+        var anyStep = Settings.Settings.Pipeline15_PenaltyClearNegativeEffects.Value
+            || Settings.Settings.Pipeline16_PenaltyRestoreDestroyedParts.Value
+            || Settings.Settings.Pipeline17_PenaltyRestoreFullHealth.Value
+            || Settings.Settings.Pipeline18_PenaltyLightweightHeal.Value
+            || Settings.Settings.Pipeline19_PenaltyMetabolismRestore.Value;
+
+        if (!anyStep)
+        {
+            Logger.LogInfo("[INVULNERABILITY_END] penalty heal skipped — all steps 15–19 disabled");
+            return;
+        }
+
+        Logger.LogInfo("[INVULNERABILITY_END] metabolism-safe penalty heal");
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline15_PenaltyClearNegativeEffects, "15 Penalty Clear Negative Effects"))
+        {
+            ClearNegativeEffects(health);
+        }
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline16_PenaltyRestoreDestroyedParts, "16 Penalty Restore Destroyed Parts"))
+        {
+            RestoreDestroyedBodyParts(health);
+        }
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline17_PenaltyRestoreFullHealth, "17 Penalty Restore Full Health"))
+        {
+            DesmatchHealthReflection.TryRestoreFullHealth(health);
+        }
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline18_PenaltyLightweightHeal, "18 Penalty Lightweight Heal"))
+        {
+            DesmatchHealthReflection.TryLightweightReviveHeal(health, steps);
+        }
+        else if (IsPipelineEnabled(Settings.Settings.Pipeline19_PenaltyMetabolismRestore, "19 Penalty Metabolism Restore"))
+        {
+            DesmatchHealthReflection.TryRestorePostReviveMetabolism(health);
+        }
+
+        if (IsPipelineEnabled(Settings.Settings.Pipeline20_PenaltyResetMovement, "20 Penalty Reset Movement")
+            && localPlayer?.MovementContext != null)
+        {
+            ResetMovementRestrictions(localPlayer.MovementContext);
+        }
+    }
+
+    private IEnumerator DelayedMetabolismRestoreAfterInvuln(ActiveHealthController health)
+    {
+        if (!IsPipelineEnabled(Settings.Settings.Pipeline21_PenaltyDelayedMetabolism, "21 Penalty Delayed Metabolism"))
+        {
+            yield break;
+        }
+
+        yield return null;
+        yield return new WaitForSeconds(0.5f);
+
+        if (health == null || localPlayer == null)
+        {
+            yield break;
+        }
+
+        Logger.LogInfo("[INVULNERABILITY_END] delayed metabolism restore");
+        DesmatchHealthReflection.TryRestorePostReviveMetabolism(health);
+        TryRestorePlayerOperationalState(localPlayer, health, "InvulnEndDelayedMetabolism", skipMetabolism: true);
+    }
+
+    private void TryRestorePlayerOperationalState(LocalPlayer player, ActiveHealthController health, string context, bool skipMetabolism = false)
     {
         if (player == null)
         {
@@ -1804,7 +2007,8 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogWarning($"[REVIVE_STATE] UnpauseAllEffectsOnPlayer: {ex.Message}");
         }
 
-        if (health != null)
+        if (health != null && !skipMetabolism
+            && IsPipelineEnabled(Settings.Settings.Pipeline06_MetabolismRestore, "06 Metabolism Restore"))
         {
             DesmatchHealthReflection.TryRestorePostReviveMetabolism(health);
         }
@@ -2449,31 +2653,36 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
 
         try
         {
-            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 1: therapeutic damage (ноги/живот/руки)");
-            ApplyRealisticDamageToLimbs(health);
+            if (IsPipelineEnabled(Settings.Settings.Pipeline13_PenaltyTherapeuticDamage, "13 Penalty Therapeutic Damage"))
+            {
+                Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 1: therapeutic damage (ноги/живот/руки)");
+                ApplyRealisticDamageToLimbs(health);
+            }
         }
         catch (System.Exception ex)
         {
             Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка терапевтического урона: {ex.Message}");
         }
 
-        Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 2: ожидание 1с");
-        yield return new WaitForSeconds(1f);
+        if (IsPipelineEnabled(Settings.Settings.Pipeline14_PenaltyWaitOneSecond, "14 Penalty Wait One Second"))
+        {
+            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 2: ожидание 1с");
+            yield return new WaitForSeconds(1f);
+        }
+        else
+        {
+            yield return null;
+        }
 
         try
         {
-            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 3: full 5-stage heal pipeline");
-            RestorePlayerHealth4Stages(health);
-            if (localPlayer?.MovementContext != null)
-            {
-                ResetMovementRestrictions(localPlayer.MovementContext);
-            }
-            TryRestorePlayerOperationalState(localPlayer, health, "InvulnEndPenaltyFull");
-            DesmatchHealthReflection.TryHealWithNetworkSync(health);
+            Logger.LogInfo("[INVULNERABILITY_END] ЭТАП 3: penalty heal");
+            PerformInvulnEndPenaltyHeal(health);
+            StartCoroutine(DelayedMetabolismRestoreAfterInvuln(health));
         }
         catch (System.Exception ex)
         {
-            Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка full penalty heal: {ex.Message}");
+            Logger.LogError($"❌ [INVULNERABILITY_END] Ошибка penalty heal: {ex.Message}");
         }
 
         try
@@ -7173,45 +7382,54 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
         try
         {
         // ЭТАП 1: Затемнение экрана
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 1: Затемнение экрана");
-        try
+        if (IsPipelineEnabled(Settings.Settings.Pipeline01_FadeToBlack, "01 Fade To Black"))
         {
-            StartRespawnFade();
+            Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 1: Затемнение экрана");
+            try
+            {
+                StartRespawnFade();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError($"❌ [RESPAWN_FADE] Ошибка затемнения экрана: {ex.Message}");
+            }
+
+            yield return new WaitForSeconds(0.5f);
         }
-        catch (System.Exception ex)
+        else
         {
-            Logger.LogError($"❌ [RESPAWN_FADE] Ошибка затемнения экрана: {ex.Message}");
+            yield return null;
         }
-        
-        yield return new WaitForSeconds(0.5f); // Ждем затемнения
         
         // ЭТАП 2: Телепортация игрока
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 3: Телепортация игрока");
-        try
+        if (IsPipelineEnabled(Settings.Settings.Pipeline02_Teleport, "02 Teleport"))
         {
-            // Перед телепортом перепроверяем localPlayer
-            if (localPlayer == null)
+            Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 2: Телепортация игрока");
+            try
             {
-                if (gameWorld != null) localPlayer = gameWorld.MainPlayer as LocalPlayer;
                 if (localPlayer == null)
                 {
-                    var allLocalPlayers = FindObjectsOfType<LocalPlayer>();
-                    foreach (var p in allLocalPlayers)
+                    if (gameWorld != null) localPlayer = gameWorld.MainPlayer as LocalPlayer;
+                    if (localPlayer == null)
                     {
-                        if (p.IsYourPlayer) { localPlayer = p; break; }
+                        var allLocalPlayers = FindObjectsOfType<LocalPlayer>();
+                        foreach (var p in allLocalPlayers)
+                        {
+                            if (p.IsYourPlayer) { localPlayer = p; break; }
+                        }
                     }
                 }
+                TeleportPlayerToRespawnPosition();
+                Logger.LogInfo("[RESPAWN_FADE] Teleport complete — fade protection via isRespawnInProgress until finalize");
             }
-            TeleportPlayerToRespawnPosition();
-            Logger.LogInfo("[RESPAWN_FADE] Teleport complete — fade protection via isRespawnInProgress until finalize");
-        }
-        catch (System.Exception ex)
-        {
-            Logger.LogError($"❌ [RESPAWN_FADE] Ошибка телепортации: {ex.Message}");
+            catch (System.Exception ex)
+            {
+                Logger.LogError($"❌ [RESPAWN_FADE] Ошибка телепортации: {ex.Message}");
+            }
         }
         
-        // ЭТАП 4: Лечение
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 4: Lightweight revive heal");
+        // ЭТАП 3: Лечение
+        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 3: Lightweight revive heal");
         var health = localPlayer?.ActiveHealthController;
         if (health != null)
         {
@@ -7225,23 +7443,25 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             }
         }
 
-        // ЭТАП 5: Осветление экрана
-        Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 5: Осветление экрана");
-        try
+        // ЭТАП 4: Осветление экрана
+        if (IsPipelineEnabled(Settings.Settings.Pipeline08_FadeWake, "08 Fade Wake"))
         {
-            EndRespawnFade();
-        }
-        catch (System.Exception ex)
-        {
-            Logger.LogError($"❌ [RESPAWN_FADE] Ошибка осветления экрана: {ex.Message}");
-            
-            // Fallback: отключаем все эффекты
-            DisableDeathFade();
-            if (preloaderUI != null)
+            Logger.LogInfo("🎬 [RESPAWN_FADE] ЭТАП 4: Осветление экрана");
+            try
             {
-                preloaderUI.SetBlackImageAlpha(0f);
+                EndRespawnFade();
             }
-            ShowNotification("Ошибка респавна, эффекты отключены", true);
+            catch (System.Exception ex)
+            {
+                Logger.LogError($"❌ [RESPAWN_FADE] Ошибка осветления экрана: {ex.Message}");
+                
+                DisableDeathFade();
+                if (preloaderUI != null)
+                {
+                    preloaderUI.SetBlackImageAlpha(0f);
+                }
+                ShowNotification("Ошибка респавна, эффекты отключены", true);
+            }
         }
         
         Logger.LogInfo("✅ [RESPAWN_FADE] Респавн с эффектами завершен");
@@ -7308,21 +7528,23 @@ public class DesmatchMode4Plugin : BaseUnityPlugin
             Logger.LogInfo("🚀 [TELEPORT] Позиция и поворот установлены");
             
             // Сбрасываем физическое состояние/движение
-            try
+            if (IsPipelineEnabled(Settings.Settings.Pipeline03_ResetMovementOnRevive, "03 Reset Movement On Revive"))
             {
-                var movementContext = localPlayer.MovementContext;
-                if (movementContext != null)
+                try
                 {
-                    movementContext.ResetPhysicalCondition();
-                    Logger.LogInfo("🚀 [TELEPORT] MovementContext.ResetPhysicalCondition вызван");
-                    
-                    // Дополнительный полный сброс ограничений движения
-                    ResetMovementRestrictions(movementContext);
+                    var movementContext = localPlayer.MovementContext;
+                    if (movementContext != null)
+                    {
+                        movementContext.ResetPhysicalCondition();
+                        Logger.LogInfo("🚀 [TELEPORT] MovementContext.ResetPhysicalCondition вызван");
+                        
+                        ResetMovementRestrictions(movementContext);
+                    }
                 }
-            }
-            catch (System.Exception ex)
-            {
-                Logger.LogWarning($"🚀 [TELEPORT] Ошибка при сбросе физического состояния: {ex.Message}");
+                catch (System.Exception ex)
+                {
+                    Logger.LogWarning($"🚀 [TELEPORT] Ошибка при сбросе физического состояния: {ex.Message}");
+                }
             }
             
             Logger.LogInfo("🚀 [TELEPORT] Телепортация завершена");

@@ -1,5 +1,30 @@
 # Changelog — DesmatchMode4
 
+## [3.0.23] — 2026-06-29
+
+### Changed
+- **Respawn Pipeline:** описания шагов — только свой тег в подсказке (без списка всех меток в каждом пункте)
+- **Metabolism steps (06, 19, 21):** по умолчанию **выключены** — принудительный сброс метаболизма может остановить drain еды/воды после revive
+- Остальные шаги пайплайна по умолчанию **включены**; шаги метаболизма выполняются только если явно включены в cfg
+
+### Fixed
+- Стабильный метаболизм после revive без включения metabolism-restore шагов (подтверждено тестом)
+
+## [3.0.22] — 2026-06-29
+
+### Added
+- **Respawn Pipeline:** 22 нумерованных галочки в `DesmatchMode4.cfg` → секция `Respawn Pipeline` — каждый шаг revive/finalize/invuln-penalty можно отключить для отладки метаболизма
+- Метки в описаниях: `[CRITICAL]`, `[recommended]`, `[cosmetic]`, `[optional]`, `[debug]`
+- **22 Legacy Five Stage At Invuln End** — включить старый 5-stage (известно ломает метаболизм) для сравнения
+- В логе при пропуске: `[PIPELINE] SKIP: <шаг>`
+
+## [3.0.21] — 2026-06-29
+
+### Fixed
+- **Metabolism после revive:** через ~3 сек (конец invuln) метаболизм замирал — еда/вода переставали убывать, отрицательная гидратация от еды не работала
+- **Причина:** penalty после invuln вызывал `RestorePlayerHealth4Stages` + `TryHealWithNetworkSync`, что снимало эффект `Existence` и сбрасывало rates регенерации
+- **Fix:** metabolism-safe penalty (ClearNegativeEffects + lightweight heal + restore Existence/Boolean_0), без 5-stage pipeline и без ForceRemove всех эффектов; отложенный re-sync метаболизма через 0.5с
+
 ## [3.0.20] — 2026-06-29
 
 ### Fixed

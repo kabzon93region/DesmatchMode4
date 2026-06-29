@@ -2,7 +2,7 @@
 
 **Статус:** `beta`  
 **GitHub:** source backup only  
-**Версия:** `3.0.20`  
+**Версия:** `3.0.23`  
 **Deployment:** `(server_client,headless_all)`
 
 ## 1. Подготовка (уже сделано этим скриптом)
@@ -15,7 +15,7 @@
 cd github-repos/DesmatchMode4
 git init
 git add .
-git commit -m "Source backup Desmatch Mode 4 v3.0.20"
+git commit -m "Source backup Desmatch Mode 4 v3.0.23"
 git branch -M main
 git remote add origin https://github.com/kabzon93region/DesmatchMode4.git
 git push -u origin main

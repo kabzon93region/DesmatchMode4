@@ -346,12 +346,9 @@ namespace DesmatchMode4
                     unpause?.Invoke(healthController, null);
                 }
 
-                var boolean0Prop = FindPropertyInHierarchy(healthController.GetType(), "Boolean_0");
-                if (boolean0Prop != null && boolean0Prop.CanWrite)
-                {
-                    boolean0Prop.SetValue(healthController, false);
-                    ok = true;
-                }
+                ok |= TrySetMetabolismDisabled(healthController, false);
+                ok |= TryEnsureHealthControllerStarted(healthController);
+                ok |= TryEnsureExistenceEffect(healthController);
 
                 var playerField = AccessTools.Field(healthController.GetType(), "Player")
                                   ?? FindFieldInHierarchy(healthController.GetType(), "Player");
@@ -370,32 +367,199 @@ namespace DesmatchMode4
         }
 
         /// <summary>
+        /// Boolean_0 = metabolism disabled flag (Existence/MedEffect drain paused when true).
+        /// </summary>
+        private static bool TrySetMetabolismDisabled(object healthController, bool disabled)
+        {
+            try
+            {
+                var boolean0Field = FindFieldInHierarchy(healthController.GetType(), "Boolean_0");
+                if (boolean0Field == null || !boolean0Field.FieldType.Equals(typeof(bool)))
+                {
+                    return false;
+                }
+
+                boolean0Field.SetValue(healthController, disabled);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HEALTH_REFLECTION] TrySetMetabolismDisabled: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// GClass3010.Bool_2 — health controller started; без Start() эффекты не тикают.
+        /// </summary>
+        private static bool TryEnsureHealthControllerStarted(object healthController)
+        {
+            try
+            {
+                var runtimeType = healthController.GetType();
+                var startedField = AccessTools.Field(runtimeType, "Bool_2");
+                if (startedField != null && startedField.FieldType == typeof(bool)
+                    && startedField.GetValue(healthController) is bool started && started)
+                {
+                    return true;
+                }
+
+                var startMethod = AccessTools.Method(runtimeType, "Start", Type.EmptyTypes)
+                                  ?? FindMethodInHierarchy(runtimeType, "Start");
+                if (startMethod == null)
+                {
+                    return false;
+                }
+
+                startMethod.Invoke(healthController, null);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HEALTH_REFLECTION] TryEnsureHealthControllerStarted: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Existence — пассивный drain еды/воды. ForceRemoveAllActiveEffects снимает его после invuln penalty.
+        /// </summary>
+        public static bool TryEnsureExistenceEffect(object healthController)
+        {
+            if (healthController == null) return false;
+
+            try
+            {
+                if (HasExistenceEffectReflection(healthController))
+                {
+                    return true;
+                }
+
+                return TryAddExistenceEffectReflection(healthController)
+                    && HasExistenceEffectReflection(healthController);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HEALTH_REFLECTION] TryEnsureExistenceEffect: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static Type ResolveExistenceEffectType()
+        {
+            return typeof(ActiveHealthController).GetNestedType("Existence", BindingFlags.NonPublic);
+        }
+
+        private static bool TryAddExistenceEffectReflection(object healthController)
+        {
+            var existenceType = ResolveExistenceEffectType();
+            if (existenceType == null)
+            {
+                return false;
+            }
+
+            var addEffect = AccessTools.Method(
+                healthController.GetType(),
+                "AddEffect",
+                new[] { typeof(EBodyPart), typeof(float?), typeof(float?), typeof(float?), typeof(float?), typeof(float?) });
+            if (addEffect == null || !addEffect.IsGenericMethodDefinition)
+            {
+                return false;
+            }
+
+            var genericAdd = addEffect.MakeGenericMethod(existenceType);
+            genericAdd.Invoke(healthController, new object[] { EBodyPart.Head, null, null, null, null, null });
+            return true;
+        }
+
+        private static bool HasExistenceEffectReflection(object healthController)
+        {
+            try
+            {
+                var existenceType = ResolveExistenceEffectType();
+                if (existenceType == null)
+                {
+                    return false;
+                }
+
+                var findMethod = AccessTools.Method(healthController.GetType(), "FindActiveEffect", new[] { typeof(EBodyPart) });
+                if (findMethod == null || !findMethod.IsGenericMethodDefinition)
+                {
+                    return false;
+                }
+
+                var genericFind = findMethod.MakeGenericMethod(existenceType);
+                return genericFind.Invoke(healthController, new object[] { EBodyPart.Head }) != null
+                    || genericFind.Invoke(healthController, new object[] { EBodyPart.Common }) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Лёгкое лечение для revive: negative effects + full health + metabolism flags.
         /// Без ForceRemove всех эффектов и без сброса таймеров регенерации.
         /// </summary>
         public static bool TryLightweightReviveHeal(object healthController)
         {
+            return TryLightweightReviveHeal(healthController, LightweightReviveHealSteps.AllEnabled);
+        }
+
+        public struct LightweightReviveHealSteps
+        {
+            public bool RemoveNegativeEffects;
+            public bool RestoreFullHealth;
+            public bool MetabolismRestore;
+            public bool RemoveMedEffect;
+
+            public static LightweightReviveHealSteps AllEnabled => new LightweightReviveHealSteps
+            {
+                RemoveNegativeEffects = true,
+                RestoreFullHealth = true,
+                MetabolismRestore = true,
+                RemoveMedEffect = true
+            };
+        }
+
+        public static bool TryLightweightReviveHeal(object healthController, LightweightReviveHealSteps steps)
+        {
             if (healthController == null) return false;
 
             bool ok = false;
-            foreach (var bodyPart in DesmatchHealthUtils.BODY_PARTS_ORDER)
+            if (steps.RemoveNegativeEffects)
             {
-                ok |= TryRemoveNegativeEffects(healthController, bodyPart);
+                foreach (var bodyPart in DesmatchHealthUtils.BODY_PARTS_ORDER)
+                {
+                    ok |= TryRemoveNegativeEffects(healthController, bodyPart);
+                }
+
+                ok |= TryRemoveNegativeEffects(healthController, EBodyPart.Common);
             }
 
-            ok |= TryRemoveNegativeEffects(healthController, EBodyPart.Common);
-            ok |= TryRestoreFullHealth(healthController);
-            ok |= TryRestorePostReviveMetabolism(healthController);
-
-            try
+            if (steps.RestoreFullHealth)
             {
-                var removeMed = AccessTools.Method(healthController.GetType(), "RemoveMedEffect", Type.EmptyTypes);
-                removeMed?.Invoke(healthController, null);
-                ok = true;
+                ok |= TryRestoreFullHealth(healthController);
             }
-            catch (Exception ex)
+
+            if (steps.MetabolismRestore)
             {
-                Debug.LogWarning($"[HEALTH_REFLECTION] RemoveMedEffect: {ex.Message}");
+                ok |= TryRestorePostReviveMetabolism(healthController);
+            }
+
+            if (steps.RemoveMedEffect)
+            {
+                try
+                {
+                    var removeMed = AccessTools.Method(healthController.GetType(), "RemoveMedEffect", Type.EmptyTypes);
+                    removeMed?.Invoke(healthController, null);
+                    ok = true;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[HEALTH_REFLECTION] RemoveMedEffect: {ex.Message}");
+                }
             }
 
             return ok;

@@ -26,6 +26,40 @@ namespace DesmatchMode4.Settings
         public static ConfigEntry<float> TinnitusDuration;
         public static ConfigEntry<bool> TinnitusFadeOut;
         public static ConfigEntry<bool> ShowSoundEffectNotifications;
+
+        // --- Respawn pipeline (порядок = порядок в cfg; отключайте для отладки метаболизма) ---
+        // Revive (fade path)
+        public static ConfigEntry<bool> Pipeline01_FadeToBlack;
+        public static ConfigEntry<bool> Pipeline02_Teleport;
+        public static ConfigEntry<bool> Pipeline03_ResetMovementOnRevive;
+        public static ConfigEntry<bool> Pipeline04_ClearNegativeEffects;
+        public static ConfigEntry<bool> Pipeline05_RestoreFullHealth;
+        public static ConfigEntry<bool> Pipeline06_MetabolismRestore;
+        public static ConfigEntry<bool> Pipeline07_OperationalState;
+        public static ConfigEntry<bool> Pipeline08_FadeWake;
+        // Finalize
+        public static ConfigEntry<bool> Pipeline09_EnableInvulnerability;
+        public static ConfigEntry<bool> Pipeline10_FinalizeSecondHealPass;
+        public static ConfigEntry<bool> Pipeline11_FinalizeTinnitus;
+        public static ConfigEntry<bool> Pipeline12_FinalizeNetworkSync;
+        // Invuln end penalty
+        public static ConfigEntry<bool> Pipeline13_PenaltyTherapeuticDamage;
+        public static ConfigEntry<bool> Pipeline14_PenaltyWaitOneSecond;
+        public static ConfigEntry<bool> Pipeline15_PenaltyClearNegativeEffects;
+        public static ConfigEntry<bool> Pipeline16_PenaltyRestoreDestroyedParts;
+        public static ConfigEntry<bool> Pipeline17_PenaltyRestoreFullHealth;
+        public static ConfigEntry<bool> Pipeline18_PenaltyLightweightHeal;
+        public static ConfigEntry<bool> Pipeline19_PenaltyMetabolismRestore;
+        public static ConfigEntry<bool> Pipeline20_PenaltyResetMovement;
+        public static ConfigEntry<bool> Pipeline21_PenaltyDelayedMetabolism;
+        /// <summary>Debug: старый 5-stage + ForceRemove — известно ломает метаболизм.</summary>
+        public static ConfigEntry<bool> Pipeline22_LegacyFiveStageAtInvulnEnd;
+        
+        /// <summary>Проверка включён ли шаг пайплайна.</summary>
+        public static bool IsPipelineStepEnabled(ConfigEntry<bool> entry)
+        {
+            return entry == null || entry.Value;
+        }
         
         // Константы для валидации и безопасности
         public const int MIN_RESPAWN_DELAY = 0; // Минимальная задержка респавна (мс)
